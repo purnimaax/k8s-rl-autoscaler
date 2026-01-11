@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-eater
+  labels:
+    app: cpu-eater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-eater
+  template:
+    metadata:
+      labels:
+        app: cpu-eater
+    spec:
+      containers:
+      - name: cpu-eater
+        image: cpu-eater:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "250m"  # Request 0.25 CPU
+            memory: "64Mi"
+          limits:
+            cpu: "500m"  # Limit to 0.5 CPU
+            memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-eater-service
+spec:
+  selector:
+    app: cpu-eater
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
