@@ -1,6 +1,0 @@
-stable-baselines3
-gymnasium
-kubernetes
-shimmy
-pandas
-requests
