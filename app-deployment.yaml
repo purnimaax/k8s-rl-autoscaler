@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cpu-eater-code
+data:
+  app.py: |
+    from flask import Flask
+    import time
+    import math
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def home():
+        return "CPU Eater is active!"
+
+    @app.route('/stress')
+    def stress():
+        # Intense math loop to spike CPU
+        start = time.time()
+        while time.time() - start < 10:  # Run for 10 seconds
+            _ = math.sqrt(64*64*64*64)
+        return "Stressed!"
+
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=5000)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-eater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-eater
+  template:
+    metadata:
+      labels:
+        app: cpu-eater
+    spec:
+      containers:
+      - name: cpu-eater
+        image: python:3.9-slim
+        command: ["/bin/sh", "-c"]
+        # Install Flask and run the mounted app
+        args: ["pip install flask && python /app/app.py"]
+        ports:
+        - containerPort: 5000
+        resources:
+          limits:
+            cpu: "500m"  # Limit CPU so we can see the % rise easily
+          requests:
+            cpu: "200m"
+        volumeMounts:
+        - name: code-volume
+          mountPath: /app
+      volumes:
+      - name: code-volume
+        configMap:
+          name: cpu-eater-code
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-eater
+spec:
+  selector:
+    app: cpu-eater
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
